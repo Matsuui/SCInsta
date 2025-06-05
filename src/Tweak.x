@@ -21,7 +21,7 @@
 ///////////////////////////////////////////////////////////
 
 // * Tweak version *
-NSString *SCIVersionString = @"v0.6.0";
+NSString *SCIVersionString = @"v0.7.0-dev";
 
 // Variables that work across features
 BOOL seenButtonEnabled = false;
@@ -105,7 +105,12 @@ static BOOL isAuthenticationShowed = FALSE;
 %end
 
 
-// Instagram DM visual messages / IG stories
+// Disable anti-screenshot feature on visual messages
+%hook IGStoryViewerContainerView
+- (void)setShouldBlockScreenshot:(BOOL)arg1 viewModel:(id)arg2 { VOID_HANDLESCREENSHOT(%orig); }
+%end
+
+// Disable screenshot logging/detection
 %hook IGDirectVisualMessageViewerSession
 - (id)visualMessageViewerController:(id)arg1 didDetectScreenshotForVisualMessage:(id)arg2 atIndex:(NSInteger)arg3 { NONVOID_HANDLESCREENSHOT(%orig); }
 - (id)visualMessageViewerController:(id)arg1 didEndPlaybackForVisualMessage:(id)arg2 atIndex:(NSInteger)arg3 forNavType:(NSInteger)arg4 { NONVOID_HANDLEREPLAY(%orig); }
@@ -121,33 +126,43 @@ static BOOL isAuthenticationShowed = FALSE;
 - (id)visualMessageViewerController:(id)arg1 didEndPlaybackForVisualMessage:(id)arg2 atIndex:(NSInteger)arg3 forNavType:(NSInteger)arg4 { NONVOID_HANDLEREPLAY(%orig); }
 %end
 
+%hook IGScreenshotObserver
+- (id)initForController:(id)arg1 { NONVOID_HANDLESCREENSHOT(%orig); }
+%end
+
+%hook IGScreenshotObserverDelegate
+- (void)screenshotObserverDidSeeScreenshotTaken:(id)arg1 { VOID_HANDLESCREENSHOT(%orig); }
+- (void)screenshotObserverDidSeeActiveScreenCapture:(id)arg1 event:(NSInteger)arg2 { VOID_HANDLESCREENSHOT(%orig); }
+%end
+
+%hook IGDirectMediaViewerViewController
+- (void)screenshotObserverDidSeeScreenshotTaken:(id)arg1 { VOID_HANDLESCREENSHOT(%orig); }
+- (void)screenshotObserverDidSeeActiveScreenCapture:(id)arg1 event:(NSInteger)arg2 { VOID_HANDLESCREENSHOT(%orig); }
+%end
+
+%hook IGStoryViewerViewController
+- (void)screenshotObserverDidSeeScreenshotTaken:(id)arg1 { VOID_HANDLESCREENSHOT(%orig); }
+- (void)screenshotObserverDidSeeActiveScreenCapture:(id)arg1 event:(NSInteger)arg2 { VOID_HANDLESCREENSHOT(%orig); }
+%end
+
+%hook IGSundialFeedViewController
+- (void)screenshotObserverDidSeeScreenshotTaken:(id)arg1 { VOID_HANDLESCREENSHOT(%orig); }
+- (void)screenshotObserverDidSeeActiveScreenCapture:(id)arg1 event:(NSInteger)arg2 { VOID_HANDLESCREENSHOT(%orig); }
+%end
+
 %hook IGDirectVisualMessageViewerController
 - (void)screenshotObserverDidSeeScreenshotTaken:(id)arg1 { VOID_HANDLESCREENSHOT(%orig); }
 - (void)screenshotObserverDidSeeActiveScreenCapture:(id)arg1 event:(NSInteger)arg2 { VOID_HANDLESCREENSHOT(%orig); }
 %end
 
-// Instagram Screenshot Observer
-%hook IGScreenshotObserver
-- (id)initForController:(id)arg1 { NONVOID_HANDLESCREENSHOT(%orig); }
-%end
-
-// Remove notes tray
-%hook IGDirectNotesTrayRowSectionController
-- (id)initWithUserSession:(id)arg1 delegate:(id)arg2 containerModule:(id)arg3 {
-    if ([SCIManager getPref:@"hide_notes_tray"]) {
-        NSLog(@"[SCInsta] Hiding notes tray");
-        return nil;
-    }
-    return %orig(arg1, arg2, arg3);
-}
-%end
-
 // Direct suggested chats (in search bar)
 %hook IGDirectInboxSearchListAdapterDataSource
 - (id)objectsForListAdapter:(id)arg1 {
-    NSMutableArray *newObjs = [%orig mutableCopy];
+    NSArray *originalObjs = %orig();
+    NSMutableArray *filteredObjs = [NSMutableArray arrayWithCapacity:[originalObjs count]];
 
-    [newObjs enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+    for (id obj in originalObjs) {
+        BOOL shouldHide = NO;
 
         // Section header 
         if ([obj isKindOfClass:%c(IGLabelItemViewModel)]) {
@@ -157,7 +172,7 @@ static BOOL isAuthenticationShowed = FALSE;
                 if ([SCIManager getPref:@"no_suggested_chats"]) {
                     NSLog(@"[SCInsta] Hiding suggested chats (header)");
 
-                    [newObjs removeObjectAtIndex:idx];
+                    shouldHide = YES;
                 }
             }
 
@@ -166,7 +181,7 @@ static BOOL isAuthenticationShowed = FALSE;
                 if ([SCIManager getPref:@"hide_meta_ai"]) {
                     NSLog(@"[SCInsta] Hiding meta ai suggested chats (header)");
 
-                    [newObjs removeObjectAtIndex:idx];
+                    shouldHide = YES;
                 }
             }
 
@@ -175,7 +190,7 @@ static BOOL isAuthenticationShowed = FALSE;
                 if ([SCIManager getPref:@"hide_meta_ai"]) {
                     NSLog(@"[SCInsta] Hiding ai suggested chats (header)");
 
-                    [newObjs removeObjectAtIndex:idx];
+                    shouldHide = YES;
                 }
             }
             
@@ -190,7 +205,7 @@ static BOOL isAuthenticationShowed = FALSE;
             if ([SCIManager getPref:@"hide_meta_ai"]) {
                 NSLog(@"[SCInsta] Hiding suggested chats (ai agents)");
 
-                [newObjs removeObjectAtIndex:idx];
+                shouldHide = YES;
             }
 
         }
@@ -203,7 +218,7 @@ static BOOL isAuthenticationShowed = FALSE;
                 if ([SCIManager getPref:@"no_suggested_chats"]) {
                     NSLog(@"[SCInsta] Hiding suggested chats (broadcast channels recipient)");
 
-                    [newObjs removeObjectAtIndex:idx];
+                    shouldHide = YES;
                 }
             }
             
@@ -212,7 +227,7 @@ static BOOL isAuthenticationShowed = FALSE;
                 if ([SCIManager getPref:@"hide_meta_ai"]) {
                     NSLog(@"[SCInsta] Hiding meta ai suggested chats (meta ai recipient)");
 
-                    [newObjs removeObjectAtIndex:idx];
+                    shouldHide = YES;
                 }
             }
 
@@ -221,23 +236,31 @@ static BOOL isAuthenticationShowed = FALSE;
                 if ([SCIManager getPref:@"hide_meta_ai"]) {
                     NSLog(@"[SCInsta] Hiding meta ai suggested chats (meta ai recipient)");
 
-                    [newObjs removeObjectAtIndex:idx];
+                    shouldHide = YES;
                 }
             }
         }
 
-    }];
+        // Populate new objs array
+        if (!shouldHide) {
+            [filteredObjs addObject:obj];
+        }
 
-    return [newObjs copy];
+    }
+
+    return [filteredObjs copy];
 }
 %end
 
 // Explore page results
 %hook IGSearchListKitDataSource
 - (id)objectsForListAdapter:(id)arg1 {
-    NSMutableArray *newObjs = [%orig mutableCopy];
+    NSArray *originalObjs = %orig();
+    NSMutableArray *filteredObjs = [NSMutableArray arrayWithCapacity:[originalObjs count]];
 
-    [newObjs enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+    for (id obj in originalObjs) {
+        BOOL shouldHide = NO;
+
         // Meta AI
         if ([SCIManager getPref:@"hide_meta_ai"]) {
 
@@ -246,19 +269,19 @@ static BOOL isAuthenticationShowed = FALSE;
 
                 // "Ask Meta AI" search results header
                 if ([[obj labelTitle] isEqualToString:@"Ask Meta AI"]) {
-                    [newObjs removeObjectAtIndex:idx];
+                    shouldHide = YES;
                 }
 
             }
 
             // Empty search bar upsell view
             else if ([obj isKindOfClass:%c(IGSearchNullStateUpsellViewModel)]) {
-                [newObjs removeObjectAtIndex:idx];
+                shouldHide = YES;
             }
 
             // Meta AI search suggestions
             else if ([obj isKindOfClass:%c(IGSearchResultNestedGroupViewModel)]) {
-                [newObjs removeObjectAtIndex:idx];
+                shouldHide = YES;
             }
 
             // Meta AI suggested search results
@@ -267,7 +290,7 @@ static BOOL isAuthenticationShowed = FALSE;
                 // itemType 6 is meta ai suggestions
                 if ([obj itemType] == 6) {
                     if ([SCIManager getPref:@"hide_meta_ai"]) {
-                        [newObjs removeObjectAtIndex:idx];
+                        shouldHide = YES;
                     }
                     
                 }
@@ -275,7 +298,7 @@ static BOOL isAuthenticationShowed = FALSE;
                 // Meta AI user account in search results
                 else if ([[[obj title] string] isEqualToString:@"meta.ai"]) {
                     if ([SCIManager getPref:@"hide_meta_ai"]) {
-                        [newObjs removeObjectAtIndex:idx];
+                        shouldHide = YES;
                     }
                 }
 
@@ -291,26 +314,31 @@ static BOOL isAuthenticationShowed = FALSE;
 
                 // "Suggested for you" search results header
                 if ([[obj labelTitle] isEqualToString:@"Suggested for you"]) {
-                    [newObjs removeObjectAtIndex:idx];
+                    shouldHide = YES;
                 }
 
             }
 
             // Instagram users
             else if ([obj isKindOfClass:%c(IGDiscoverPeopleItemConfiguration)]) {
-                [newObjs removeObjectAtIndex:idx];
+                shouldHide = YES;
             }
 
             // See all suggested users
             else if ([obj isKindOfClass:%c(IGSeeAllItemConfiguration)]) {
-                [newObjs removeObjectAtIndex:idx];
+                shouldHide = YES;
             }
 
         }
 
-    }];
+        // Populate new objs array
+        if (!shouldHide) {
+            [filteredObjs addObject:obj];
+        }
 
-    return [newObjs copy];
+    }
+
+    return [filteredObjs copy];
 }
 %end
 

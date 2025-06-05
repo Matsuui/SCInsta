@@ -337,6 +337,29 @@
 @interface IGUnifiedVideoCollectionView : UIScrollView
 @end
 
+@interface IGBadgedNavigationButton : UIView
+- (void)addLongPressGestureRecognizer; // new
+@end
+
+@interface IGSearchBar : UIView
+- (NSObject *)sanitizePlaceholderForConfig:(NSObject *)config; // new
+@end
+
+@interface IGSearchBarConfig : NSObject
+@end
+
+@interface IGAnimatablePlaceholderTextFieldContainer : UIView
+@end
+
+@interface IGDirectInboxConfig : NSObject
+@end
+
+@interface IGDirectMediaPickerConfig : NSObject
+@end
+
+@interface IGDirectMediaPickerGalleryConfig : NSObject
+@end
+
 
 
 /////////////////////////////////////////////////////////////////////////////
