@@ -146,13 +146,13 @@
             [self newSwitchCellWithTitle:@"Hide trending searches" detailTitle:@"Hides the trending searches under the explore search bar" key:@"hide_trending_searches" changeAction:nil],
             [self newSwitchCellWithTitle:@"No suggested chats" detailTitle:@"Hides the suggested broadcast channels in direct messages" key:@"no_suggested_chats" changeAction:nil],
             [self newSwitchCellWithTitle:@"No suggested users" detailTitle:@"Hides the suggested users for you to follow" key:@"no_suggested_users" changeAction:nil],
-            [self newSwitchCellWithTitle:@"Disable scrolling reels" detailTitle:@"Prevents reels from being scrolled to the next video" key:@"disable_scrolling_reels" changeAction:nil],
+            // [self newSwitchCellWithTitle:@"Disable scrolling reels" detailTitle:@"Prevents reels from being scrolled to the next video" key:@"disable_scrolling_reels" changeAction:nil],
 
             // Section 7: Hide navigation tabs
             [self newSectionWithTitle:@"Navigation" footer:nil],
             [self newSwitchCellWithTitle:@"Hide explore tab" detailTitle:@"Hides the explore/search tab on the bottom navbar" key:@"hide_explore_tab" changeAction:nil],
             [self newSwitchCellWithTitle:@"Hide create tab" detailTitle:@"Hides the create/camera tab on the bottom navbar" key:@"hide_create_tab" changeAction:nil],
-            [self newSwitchCellWithTitle:@"Hide reels tab" detailTitle:@"Hides the reels tab on the bottom navbar" key:@"hide_reels_tab" changeAction:nil],
+            // [self newSwitchCellWithTitle:@"Hide reels tab" detailTitle:@"Hides the reels tab on the bottom navbar" key:@"hide_reels_tab" changeAction:nil],
 
             // Section 8: Security
             [self newSectionWithTitle:@"Security" footer:nil],
