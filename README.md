@@ -1,3 +1,7 @@
+# This branch removes the reels tab and scrolling reels without a toggle to turn it back on
+
+# Original readme below
+
 # SCInsta
 A feature-rich tweak for Instagram on iOS!\
 `Version v0.7.0` | `Tested on Instagram 384.0.0`
